@@ -162,135 +162,6 @@ const Sidebar: React.FC<SidebarProps> = ({ teams, activeTeamId, setActiveTeamId,
           </nav>
         </div>
 
-
-        {
-          isTeamModalOpen && (
-            <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 w-full max-w-2xl shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Create Team</h4>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Srujan: Build your circle</p>
-                  </div>
-                  <button onClick={() => { setIsTeamModalOpen(false); resetForm(); }} className="text-slate-400 hover:text-orange-600 transition-colors">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-
-                <form onSubmit={handleCreateTeam} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">Team Name</label>
-                      <input
-                        autoFocus
-                        required
-                        type="text"
-                        value={newTeamName}
-                        onChange={e => setNewTeamName(e.target.value)}
-                        placeholder="e.g. Pune Operations"
-                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-orange-500 outline-none text-slate-900 dark:text-white font-bold transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Description</label>
-                      <textarea
-                        value={newTeamDesc}
-                        onChange={e => setNewTeamDesc(e.target.value)}
-                        rows={4}
-                        placeholder="What is this team's focus?"
-                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-orange-500 outline-none text-slate-900 dark:text-white font-medium transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Members</label>
-                    <div className="flex-1 px-3 py-2 overflow-y-auto space-y-8 custom-scrollbar overflow-x-hidden bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                      {allUsers.map(u => (
-                        <div
-                          key={u.id}
-                          onClick={() => toggleMember(u.id)}
-                          className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${selectedMembers.includes(u.id)
-                            ? 'bg-white dark:bg-slate-700 border-orange-200 dark:border-orange-900 shadow-sm'
-                            : 'border-transparent hover:bg-white dark:hover:bg-slate-700'
-                            }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <img src={u.avatar} className="w-8 h-8 rounded-lg" alt={u.name} />
-                            <div>
-                              <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{u.name}</p>
-                              <p className="text-[9px] font-medium text-slate-400 uppercase tracking-tighter">{u.email.split('@')[0]}</p>
-                            </div>
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedMembers.includes(u.id) ? 'bg-orange-600 border-orange-600' : 'border-slate-300 dark:border-slate-600'
-                            }`}>
-                            {selectedMembers.includes(u.id) && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2 flex gap-4 pt-4">
-                    <button type="button" onClick={() => { setIsTeamModalOpen(false); resetForm(); }} className="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">Cancel</button>
-                    <button type="submit" className="flex-1 py-4 bg-orange-600 text-white font-black rounded-2xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-600/30">Confirm & Launch Team</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )
-        }
-
-        {
-          isJoinModalOpen && (
-            <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95">
-                <div className="text-center mb-6">
-                  <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Join a Team</h4>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Enter code to sync</p>
-                </div>
-
-                <div className="space-y-6">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={joinCode}
-                    onChange={e => setJoinCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. X7Z9A2"
-                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-orange-500 outline-none text-slate-900 dark:text-white font-black text-center text-2xl tracking-[0.5em] transition-all uppercase"
-                    maxLength={6}
-                  />
-
-                  <div className="flex gap-4">
-                    <button onClick={() => { setIsJoinModalOpen(false); setJoinCode(''); }} className="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">Cancel</button>
-                    <button
-                      onClick={() => { onJoinTeam(joinCode); setIsJoinModalOpen(false); setJoinCode(''); }}
-                      disabled={joinCode.length < 3}
-                      className="flex-1 py-4 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Join
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        }
-
-        {
-          editingTeam && (
-            <TeamSettings
-              team={editingTeam}
-              currentUser={user}
-              allUsers={allUsers}
-              onUpdate={(updated) => { onUpdateTeam(updated); setEditingTeam(updated); }}
-              onClose={() => setEditingTeam(null)}
-            />
-          )
-        }
-
         <div className="p-4 border-t border-slate-800 bg-slate-950/20">
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group`}>
             <div className="relative shrink-0">
@@ -312,6 +183,129 @@ const Sidebar: React.FC<SidebarProps> = ({ teams, activeTeamId, setActiveTeamId,
           </div>
         </div>
       </div>
+
+      {/* Modals outside of sidebar container */}
+      {isTeamModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 w-full max-w-2xl shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Create Team</h4>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Srujan: Build your circle</p>
+              </div>
+              <button onClick={() => { setIsTeamModalOpen(false); resetForm(); }} className="text-slate-400 hover:text-orange-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTeam} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">Team Name</label>
+                  <input
+                    autoFocus
+                    required
+                    type="text"
+                    value={newTeamName}
+                    onChange={e => setNewTeamName(e.target.value)}
+                    placeholder="e.g. Pune Operations"
+                    className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-orange-500 outline-none text-slate-900 dark:text-white font-bold transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Description</label>
+                  <textarea
+                    value={newTeamDesc}
+                    onChange={e => setNewTeamDesc(e.target.value)}
+                    rows={4}
+                    placeholder="What is this team's focus?"
+                    className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-orange-500 outline-none text-slate-900 dark:text-white font-medium transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Members</label>
+                <div className="flex-1 px-3 py-2 overflow-y-auto space-y-8 custom-scrollbar overflow-x-hidden bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  {allUsers.map(u => (
+                    <div
+                      key={u.id}
+                      onClick={() => toggleMember(u.id)}
+                      className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${selectedMembers.includes(u.id)
+                        ? 'bg-white dark:bg-slate-700 border-orange-200 dark:border-orange-900 shadow-sm'
+                        : 'border-transparent hover:bg-white dark:hover:bg-slate-700'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <img src={u.avatar} className="w-8 h-8 rounded-lg" alt={u.name} />
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{u.name}</p>
+                          <p className="text-[9px] font-medium text-slate-400 uppercase tracking-tighter">{u.email.split('@')[0]}</p>
+                        </div>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedMembers.includes(u.id) ? 'bg-orange-600 border-orange-600' : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                        {selectedMembers.includes(u.id) && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="md:col-span-2 flex gap-4 pt-4">
+                <button type="button" onClick={() => { setIsTeamModalOpen(false); resetForm(); }} className="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">Cancel</button>
+                <button type="submit" className="flex-1 py-4 bg-orange-600 text-white font-black rounded-2xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-600/30">Confirm & Launch Team</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isJoinModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95">
+            <div className="text-center mb-6">
+              <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Join a Team</h4>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Enter code to sync</p>
+            </div>
+
+            <div className="space-y-6">
+              <input
+                autoFocus
+                type="text"
+                value={joinCode}
+                onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="e.g. X7Z9A2"
+                className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-transparent focus:border-orange-500 outline-none text-slate-900 dark:text-white font-black text-center text-2xl tracking-[0.5em] transition-all uppercase"
+                maxLength={6}
+              />
+
+              <div className="flex gap-4">
+                <button onClick={() => { setIsJoinModalOpen(false); setJoinCode(''); }} className="flex-1 py-4 text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all">Cancel</button>
+                <button
+                  onClick={() => { onJoinTeam(joinCode); setIsJoinModalOpen(false); setJoinCode(''); }}
+                  disabled={joinCode.length < 3}
+                  className="flex-1 py-4 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Join
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingTeam && (
+        <TeamSettings
+          team={editingTeam}
+          currentUser={user}
+          allUsers={allUsers}
+          onUpdate={(updated) => { onUpdateTeam(updated); setEditingTeam(updated); }}
+          onClose={() => setEditingTeam(null)}
+        />
+      )}
     </>
   );
 };
