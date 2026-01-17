@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskSetu AI - Smart Indian Task Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .light body {
+      background-color: #fffaf0;
+      color: #0f172a;
+    }
+
+    .dark body {
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+
+    .indian-pattern {
+      background-image: radial-gradient(#fb923c 0.5px, transparent 0.5px), radial-gradient(#fb923c 0.5px, #fffaf0 0.5px);
+      background-size: 20px 20px;
+      background-position: 0 0, 10px 10px;
+      opacity: 0.05;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .dark .indian-pattern {
+      background-image: radial-gradient(#f97316 0.5px, transparent 0.5px), radial-gradient(#f97316 0.5px, #0f172a 0.5px);
+      opacity: 0.03;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    [data-dnd-dragging="true"] {
+      opacity: 0.5;
+      cursor: grabbing !important;
+    }
+
+    /* Smooth transition for theme toggle */
+    * {
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "@dnd-kit/core": "https://esm.sh/@dnd-kit/core@^6.1.0",
+    "@dnd-kit/sortable": "https://esm.sh/@dnd-kit/sortable@^8.0.0",
+    "@dnd-kit/utilities": "https://esm.sh/@dnd-kit/utilities@^3.2.2",
+    "firebase/app": "https://esm.sh/firebase@10.13.0/app",
+    "firebase/firestore": "https://esm.sh/firebase@10.13.0/firestore",
+    "firebase/storage": "https://esm.sh/firebase@10.13.0/storage",
+    "firebase/auth": "https://esm.sh/firebase@10.13.0/auth",
+    "firebase/": "https://esm.sh/firebase@^12.8.0/"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div class="indian-pattern"></div>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

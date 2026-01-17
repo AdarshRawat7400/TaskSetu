@@ -1,0 +1,8 @@
+{
+  "name": "TaskSync AI",
+  "description": "An enterprise-grade task tracker with team collaboration, WhatsApp bot integration, and AI-powered task management.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
