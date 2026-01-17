@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Task, User, TaskStatus, Attachment, ReminderType, ActivityLog, Comment } from '../types.ts';
 import { firebaseService } from '../services/firebaseService.ts';
 import { geminiService } from '../services/geminiService.ts';
+import { gasUploadService } from '../services/gasUploadService.ts';
 
 interface TaskDetailViewProps {
   task: Task;
@@ -13,11 +14,101 @@ interface TaskDetailViewProps {
   onDelete: (taskId: string) => void;
 }
 
+
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95">
+        <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center mb-6 mx-auto">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        </div>
+        <h3 className="text-xl font-black text-center text-slate-900 dark:text-white mb-2">{title}</h3>
+        <p className="text-center text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed mb-8">
+          {message}
+        </p>
+        <div className="flex gap-4">
+          <button onClick={onClose} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20">
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const formatMessage = (content: string) => {
+  const lines = content.split('\n');
+  return lines.map((line, idx) => {
+    const parts = line.split(/(\*\*.*?\*\*)/g);
+    const formattedLine = parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+
+    if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
+      return <div key={idx} className="flex gap-2 ml-2 my-1"><span className="text-orange-500">•</span><p className="flex-1">{formattedLine.slice(1)}</p></div>;
+    }
+
+    if (line.trim().startsWith('### ')) {
+      return <h3 key={idx} className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide mt-4 mb-2">{line.replace('### ', '')}</h3>;
+    }
+
+    return line.trim() === '' ? <div key={idx} className="h-2"></div> : <p key={idx} className="mb-1 last:mb-0">{formattedLine}</p>;
+  });
+};
+
+const renderCommentContent = (content: string) => {
+  if (content.startsWith('[AI_SESSION]')) {
+    try {
+      const jsonContent = content.replace('[AI_SESSION]', '');
+      const sessionData = JSON.parse(jsonContent);
+      const messages = sessionData.messages || [];
+
+      return (
+        <div className="mt-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="bg-slate-100 dark:bg-slate-800/50 px-4 py-2 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-orange-600 rounded-lg flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">AI Chat Session</span>
+            </div>
+
+          </div>
+          <div className="p-4 space-y-4 max-h-60 overflow-y-auto custom-scrollbar">
+            {messages.map((msg: any, idx: number) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[90%] p-3 rounded-2xl text-xs font-medium leading-relaxed ${msg.role === 'user'
+                  ? 'bg-orange-600 text-white rounded-tr-none'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-tl-none'
+                  }`}>
+                  {msg.role === 'assistant' ? formatMessage(msg.content) : msg.content}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    } catch (e) {
+      return <p className="text-xs text-red-500 italic">Error parsing AI session data.</p>;
+    }
+  }
+
+  return <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">{content}</p>;
+};
+
 const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, users, onUpdate, onDelete }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState<Task>(task);
+  const [fileToDelete, setFileToDelete] = useState<Attachment | null>(null);
   const [commentInput, setCommentInput] = useState('');
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'comments'>('info');
   const assignee = users.find(u => u.id === task.assigneeId);
@@ -178,7 +269,9 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, 
                         for (const file of newFiles) {
                           try {
                             const fileObj = file as File;
-                            const url = await firebaseService.uploadFile(fileObj);
+                            // Use GAS Upload Service instead of Firebase
+                            // const url = await firebaseService.uploadFile(fileObj);
+                            const url = await gasUploadService.uploadFile(fileObj);
                             uploadedAttachments.push({
                               id: Math.random().toString(36).substr(2, 9),
                               name: fileObj.name,
@@ -230,15 +323,36 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, 
                           </div>
                           {att.type.includes('image') && (
                             <div className="aspect-video rounded-xl bg-slate-200 dark:bg-slate-900 overflow-hidden mt-1">
-                              <img src={att.url} className="w-full h-full object-cover" />
+                              {(() => {
+                                const getDirectUrl = (url: string) => {
+                                  if (!url) return '';
+                                  // Check for Google Drive URL
+                                  if (url.includes('drive.google.com') || url.includes('script.google.com')) {
+                                    // Extract ID
+                                    let id = '';
+                                    if (url.includes('/d/')) {
+                                      id = url.split('/d/')[1].split('/')[0];
+                                    } else if (url.includes('id=')) {
+                                      id = url.split('id=')[1].split('&')[0];
+                                    }
+
+                                    if (id) {
+                                      // Use thumbnail endpoint which is more robust for embedding than download link
+                                      // sz=w1000 requests a large thumbnail (width 1000px)
+                                      return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+                                    }
+                                  }
+                                  return url;
+                                };
+                                return <img src={getDirectUrl(att.url)} referrerPolicy="no-referrer" className="w-full h-full object-cover" />;
+                              })()}
                             </div>
                           )}
                         </a>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const newAttachments = task.attachments?.filter(a => a.id !== att.id) || [];
-                            onUpdate({ ...task, attachments: newAttachments });
+                            setFileToDelete(att);
                           }}
                           className="absolute top-2 right-2 p-1.5 bg-red-100 text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
                         >
@@ -426,7 +540,8 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, 
                           <p className="text-[11px] font-black text-slate-900 dark:text-white">{commentUser?.name}</p>
                           <span className="text-[9px] font-bold text-slate-400 uppercase">{new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{comment.content}</p>
+
+                        {renderCommentContent(comment.content)}
                       </div>
                     </div>
                   );
@@ -460,6 +575,23 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, 
 
         </div>
       </div>
+      {/* File Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!fileToDelete}
+        onClose={() => setFileToDelete(null)}
+        title="Delete File?"
+        message="Are you sure you want to delete this file? This action cannot be undone and will remove it from Google Drive."
+        onConfirm={async () => {
+          if (fileToDelete) {
+            // Delete from GDrive
+            await gasUploadService.deleteFile(fileToDelete.url);
+            // Remove from Task
+            const newAttachments = task.attachments?.filter(a => a.id !== fileToDelete.id) || [];
+            onUpdate({ ...task, attachments: newAttachments });
+            setFileToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 };
