@@ -14,6 +14,7 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { Task, TaskStatus, User, ReminderType, Attachment } from '../types.ts';
 import { firebaseService } from '../services/firebaseService.ts';
+import { gasUploadService } from '../services/gasUploadService.ts';
 import TicketChatModal from './TicketChatModal';
 import TaskDetailView from './TaskDetailView.tsx';
 
@@ -342,7 +343,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpda
     if (newAttachments.length > 0) {
       for (const file of newAttachments) {
         try {
-          const url = await firebaseService.uploadFile(file);
+          const url = await gasUploadService.uploadFile(file);
           uploadedAttachments.push({
             id: Math.random().toString(36).substr(2, 9),
             name: file.name,
