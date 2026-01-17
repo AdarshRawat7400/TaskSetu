@@ -220,6 +220,18 @@ const App: React.FC = () => {
     await firebaseService.saveTask(task);
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    // 1. Optimistic Update
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    // 2. Call API
+    try {
+      await firebaseService.deleteTask(taskId);
+    } catch (e) {
+      console.error("Failed to delete task", e);
+      // Optional: Rollback state here if needed
+    }
+  };
+
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
       // 1. Team Filter
@@ -307,6 +319,7 @@ const App: React.FC = () => {
             onUpdateTask={updateTaskStatus}
             onAddTask={addTask}
             onTaskModified={handleTaskModified}
+            onDeleteTask={handleDeleteTask}
           />
         </main>
       </div>

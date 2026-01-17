@@ -26,9 +26,35 @@ interface DashboardProps {
   onAddTask: (task: Task) => void;
   onTaskModified: (task: Task) => void;
   isArchivedView: boolean;
+  onDeleteTask: (taskId: string) => void;
 }
 
-const TaskCard = ({ task, users, onClick, onArchive, onQuickUpdate, onChat, isPreview = false }: any) => {
+const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose: () => void; onConfirm: () => void }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95">
+        <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center mb-6 mx-auto">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        </div>
+        <h3 className="text-xl font-black text-center text-slate-900 dark:text-white mb-2">Delete Ticket?</h3>
+        <p className="text-center text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed mb-8">
+          Are you sure you want to permanently delete this task? This action cannot be undone.
+        </p>
+        <div className="flex gap-4">
+          <button onClick={onClose} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20">
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TaskCard = ({ task, users, onClick, onArchive, onQuickUpdate, onChat, onDelete, isPreview = false }: any) => {
   const [showMenu, setShowMenu] = useState(false);
   const assignee = users.find((u: any) => u.id === task.assigneeId);
   const formattedDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'No date';
@@ -106,6 +132,16 @@ const TaskCard = ({ task, users, onClick, onArchive, onQuickUpdate, onChat, isPr
                     ))}
                   </div>
                 </div>
+
+                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDelete(task.id); }}
+                  className="w-full text-left px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  Delete Ticket
+                </button>
               </div>
             )}
           </div>
@@ -141,19 +177,21 @@ const TaskCard = ({ task, users, onClick, onArchive, onQuickUpdate, onChat, isPr
       </p>
 
       {/* Attachments Preview - Mini */}
-      {task.attachments && task.attachments.length > 0 && (
-        <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-          {task.attachments.map((att: any) => (
-            att.type.startsWith('image') ? (
-              <img key={att.id} src={att.url} className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-700" title={att.name} />
-            ) : (
-              <div key={att.id} className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-indigo-500" title={att.name}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 2 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              </div>
-            )
-          ))}
-        </div>
-      )}
+      {
+        task.attachments && task.attachments.length > 0 && (
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
+            {task.attachments.map((att: any) => (
+              att.type.startsWith('image') ? (
+                <img key={att.id} src={att.url} className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-700" title={att.name} />
+              ) : (
+                <div key={att.id} className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-indigo-500" title={att.name}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 2 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </div>
+              )
+            ))}
+          </div>
+        )
+      }
 
       <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-700">
         <div className="flex items-center gap-2">
@@ -168,11 +206,11 @@ const TaskCard = ({ task, users, onClick, onArchive, onQuickUpdate, onChat, isPr
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
-const SortableTask = ({ task, users, onClick, onArchive, onQuickUpdate, onChat }: any) => {
+const SortableTask = ({ task, users, onClick, onArchive, onQuickUpdate, onChat, onDelete }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: false });
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -183,7 +221,7 @@ const SortableTask = ({ task, users, onClick, onArchive, onQuickUpdate, onChat }
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} users={users} onClick={onClick} onArchive={onArchive} onQuickUpdate={onQuickUpdate} onChat={onChat} />
+      <TaskCard task={task} users={users} onClick={onClick} onArchive={onArchive} onQuickUpdate={onQuickUpdate} onChat={onChat} onDelete={onDelete} />
     </div>
   );
 };
@@ -199,9 +237,10 @@ interface DroppableColumnProps {
   onArchive: (id: string) => void;
   onQuickUpdate: (id: string, status: TaskStatus) => void;
   onChat: (task: Task) => void; // Added onChat prop
+  onDelete: (id: string) => void;
 }
 
-const DroppableColumn = ({ title, status, color, accent, tasks, users, onCardClick, onArchive, onQuickUpdate, onChat }: DroppableColumnProps) => {
+const DroppableColumn = ({ title, status, color, accent, tasks, users, onCardClick, onArchive, onQuickUpdate, onChat, onDelete }: DroppableColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
@@ -222,7 +261,7 @@ const DroppableColumn = ({ title, status, color, accent, tasks, users, onCardCli
       >
         <SortableContext items={tasks.map((t: any) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task: any) => (
-            <SortableTask key={task.id} task={task} users={users} onClick={onCardClick} onArchive={onArchive} onQuickUpdate={onQuickUpdate} onChat={onChat} />
+            <SortableTask key={task.id} task={task} users={users} onClick={onCardClick} onArchive={onArchive} onQuickUpdate={onQuickUpdate} onChat={onChat} onDelete={onDelete} />
           ))}
           {tasks.length === 0 && (
             <div className="h-full w-full min-h-[150px] flex items-center justify-center text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest pointer-events-none text-center p-10">
@@ -235,8 +274,9 @@ const DroppableColumn = ({ title, status, color, accent, tasks, users, onCardCli
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpdateTask, onAddTask, teamId, onTaskModified, isArchivedView }) => {
+const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpdateTask, onAddTask, teamId, onTaskModified, isArchivedView, onDeleteTask }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -386,6 +426,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpda
                 onArchive={handleArchive}
                 onQuickUpdate={onUpdateTask}
                 onChat={setChatTask}
+                onDelete={(taskId) => setDeleteTaskId(taskId)}
               />
             </div>
           ))}
@@ -486,8 +527,31 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpda
             onTaskModified(t);
             setSelectedTask(t);
           }}
+          onDelete={(taskId) => setDeleteTaskId(taskId)}
         />
       )}
+
+      <DeleteConfirmationModal
+        isOpen={!!deleteTaskId}
+        onClose={() => setDeleteTaskId(null)}
+        onConfirm={() => {
+          if (deleteTaskId) {
+            onDeleteTask(deleteTaskId);
+            setDeleteTaskId(null);
+
+            // Explicitly close details view if the deleted task is the one currently open
+            if (selectedTask?.id === deleteTaskId) {
+              setSelectedTask(null);
+            }
+
+            // If we deleted the chat task, close that too
+            if (chatTask?.id === deleteTaskId) {
+              setChatTask(null);
+            }
+          }
+        }}
+      />
+
       <TicketChatModal
         isOpen={!!chatTask}
         onClose={() => setChatTask(null)}

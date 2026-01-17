@@ -10,9 +10,10 @@ interface TaskDetailViewProps {
   onClose: () => void;
   users: User[];
   onUpdate: (task: Task) => void;
+  onDelete: (taskId: string) => void;
 }
 
-const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, users, onUpdate }) => {
+const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, users, onUpdate, onDelete }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -372,6 +373,16 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, 
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     Archive Ticket
+                  </button>
+                )}
+
+                {!isEditing && (
+                  <button
+                    onClick={() => onDelete(task.id)}
+                    className="w-full mt-3 py-4 text-xs font-black text-slate-400 hover:text-red-500 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-red-200"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    Delete Ticket
                   </button>
                 )}
               </section>
