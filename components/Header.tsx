@@ -18,6 +18,7 @@ interface HeaderProps {
   filterDate: string;
   onFilterDateChange: (val: string) => void;
   users: User[];
+  onToggleSidebar: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -34,7 +35,8 @@ const Header: React.FC<HeaderProps> = ({
   onFilterAssigneeChange,
   filterDate,
   onFilterDateChange,
-  users
+  users,
+  onToggleSidebar
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
@@ -43,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-24 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-6 md:px-10 shrink-0 z-40 sticky top-0 transition-colors">
       <div className="flex items-center gap-6">
-        <button className="md:hidden text-slate-600 dark:text-slate-400">
+        <button onClick={onToggleSidebar} className="md:hidden text-slate-600 dark:text-slate-400 p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
           </svg>

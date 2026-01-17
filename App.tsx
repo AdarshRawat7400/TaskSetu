@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>(MOCK_TEAMS);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(MOCK_TEAMS[0].id);
   const [isBotOpen, setIsBotOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -290,6 +291,8 @@ const App: React.FC = () => {
         onAddTeam={addTeam}
         onJoinTeam={handleJoinTeam}
         onUpdateTeam={handleUpdateTeam}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -299,6 +302,7 @@ const App: React.FC = () => {
           onOpenBot={() => setIsBotOpen(true)}
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           filterStatus={filterStatus}
