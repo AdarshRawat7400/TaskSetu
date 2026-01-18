@@ -112,7 +112,52 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, 
   const [commentInput, setCommentInput] = useState('');
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'comments'>('info');
   const assignee = users.find(u => u.id === task.assigneeId);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // AI Autofill State
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScanFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    setScanError(null);
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64String = (reader.result as string).split(',')[1];
+        const extracted = await geminiService.analyzeDocument(base64String, file.type);
+
+        if (extracted) {
+          setEditedTask(prev => ({
+            ...prev,
+            title: extracted.title || prev.title,
+            description: extracted.description || prev.description,
+            priority: extracted.priority || prev.priority,
+            dueDate: extracted.dueDate || prev.dueDate
+          }));
+        }
+      } catch (err: any) {
+        console.error("Scan failed", err);
+        const msg = err.message || "Failed to scan document.";
+        setScanError(msg === "Not available at the moment" ? msg : "Failed to scan document.");
+      } finally {
+        setIsScanning(false);
+        if (scanInputRef.current) scanInputRef.current.value = '';
+      }
+    };
+    try {
+      reader.readAsDataURL(file);
+    } catch (e) {
+      setIsScanning(false);
+      setScanError("Failed to read file");
+    }
+  };
 
   useEffect(() => {
     const initialDate = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
@@ -195,7 +240,28 @@ const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, isOpen, onClose, 
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {isEditing ? (
-              <button onClick={handleSaveEdit} className="px-4 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm shadow-lg">Save</button>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col items-end">
+                  <button
+                    onClick={() => scanInputRef.current?.click()}
+                    disabled={isScanning}
+                    className="text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 font-medium text-xs flex items-center gap-2 transition-colors disabled:opacity-50"
+                    title="Upload image/PDF to autofill details"
+                  >
+                    <svg className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    {isScanning ? 'Analyzing...' : 'AI Autofill'}
+                  </button>
+                  <input
+                    type="file"
+                    ref={scanInputRef}
+                    className="hidden"
+                    accept="image/*,application/pdf"
+                    onChange={handleScanFile}
+                  />
+                  {scanError && <p className="text-red-500 text-[10px] text-right mt-1 font-medium">{scanError}</p>}
+                </div>
+                <button onClick={handleSaveEdit} className="px-4 py-3 bg-emerald-600 text-white rounded-2xl font-black text-sm shadow-lg">Save</button>
+              </div>
             ) : (
               <button onClick={() => setIsEditing(true)} className="p-3 text-slate-400 hover:text-orange-600 rounded-2xl transition-all">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>

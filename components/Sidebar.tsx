@@ -141,7 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ teams, activeTeamId, setActiveTeamId,
                     <>
                       <div className="flex flex-col items-start min-w-0 flex-1">
                         <span className="truncate w-full text-left">{team.name}</span>
-                        {team.joinCode && (
+                        {team.joinCode && !team.id.startsWith('personal_') && !team.id.startsWith('temp_personal_') && (
                           <span className={`text-[9px] font-mono tracking-wider ${activeTeamId === team.id ? 'text-white/80' : 'text-slate-500'}`}>
                             Code: {team.joinCode}
                           </span>

@@ -196,20 +196,75 @@ export class FirebaseService {
   }
 
   // FIRESTORE METHODS
-  async getTasks(): Promise<Task[]> {
+  async getTasks(teamId?: string): Promise<Task[]> {
     const db = FirebaseInit.getDbInstance();
     if (!db) {
       const data = localStorage.getItem(this.storageKey);
-      return data ? JSON.parse(data) : [];
+      let localTasks = data ? JSON.parse(data) : [];
+      if (teamId) {
+        localTasks = localTasks.filter((t: Task) => t.teamId === teamId);
+      }
+      return localTasks;
     }
     try {
       const tasksCol = collection(db, 'tasks');
-      const taskSnapshot = await getDocs(tasksCol);
+      let q;
+      if (teamId) {
+        q = query(tasksCol, where('teamId', '==', teamId));
+      } else {
+        // Fallback: Fetch everything (should avoid this in PROD for permissions, but keeps existing behavior if called without ID)
+        // Or strictly: return [];
+        q = query(tasksCol);
+      }
+
+      const taskSnapshot = await getDocs(q);
       return taskSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as Task));
     } catch (error) {
       console.error("Firestore error, falling back to local storage:", error);
       const data = localStorage.getItem(this.storageKey);
-      return data ? JSON.parse(data) : [];
+      let localTasks = data ? JSON.parse(data) : [];
+      if (teamId) {
+        localTasks = localTasks.filter((t: Task) => t.teamId === teamId);
+      }
+      return localTasks;
+    }
+  }
+
+  async getAllUserTasks(userId: string): Promise<Task[]> {
+    const db = FirebaseInit.getDbInstance();
+    if (!db) return [];
+
+    try {
+      const teams = await this.getTeams(userId);
+      const teamIds = teams.map(t => t.id);
+
+      // Include personal team if not returned by getTeams (though getTeams logic should ideally cover it if it's in the DB, 
+      // but 'personal_' teams are virtual/client-side sometimes. 
+      // Let's assume getTeams returns valid IDs that might have tasks.)
+      // Wait, personal workspace tasks MUST have a teamId of `personal_{userId}`.
+      // We should manually add that ID to be safe if getTeams doesn't return it.
+      if (!teamIds.includes(`personal_${userId}`)) {
+        teamIds.push(`personal_${userId}`);
+      }
+
+      if (teamIds.length === 0) return [];
+
+      const tasks: Task[] = [];
+      const tasksCol = collection(db, 'tasks');
+
+      // Firestore 'in' limit is 10
+      for (let i = 0; i < teamIds.length; i += 10) {
+        const batch = teamIds.slice(i, i + 10);
+        if (batch.length === 0) continue;
+        const q = query(tasksCol, where('teamId', 'in', batch));
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach(doc => tasks.push({ id: doc.id, ...(doc.data() as any) } as Task));
+      }
+
+      return tasks;
+    } catch (error) {
+      console.error("Error fetching all user tasks:", error);
+      return [];
     }
   }
 

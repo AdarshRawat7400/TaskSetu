@@ -67,32 +67,61 @@ const App: React.FC = () => {
       // Teams
       try {
         const remoteTeams = await firebaseService.getTeams(user.id);
-        if (remoteTeams.length > 0) {
-          setTeams(remoteTeams);
-          // Auto-select: If current ID exists in new list, keep it. Otherwise default to first team.
-          setActiveTeamId(prev => {
-            const exists = remoteTeams.find(t => t.id === prev);
-            return exists ? prev : remoteTeams[0].id;
-          });
-        } else {
-          setTeams(MOCK_TEAMS);
-          setActiveTeamId(MOCK_TEAMS[0].id);
-        }
+
+        // Always provide a Personal Workspace
+        const localTeamId = `personal_${user.id}`;
+        const personalTeam: Team = {
+          id: localTeamId,
+          name: 'Personal Workspace',
+          description: 'My private tasks',
+          members: [user.id],
+          adminIds: [user.id],
+          joinCode: '',
+          creatorId: user.id
+        };
+
+        const allTeams = [personalTeam, ...remoteTeams];
+
+        // Remove duplicates if any (though IDs should differ)
+        const uniqueTeams = Array.from(new Map(allTeams.map(t => [t.id, t])).values());
+
+        setTeams(uniqueTeams);
+
+        // Auto-select: If previous active ID exists, keep it. Else default to Personal.
+        setActiveTeamId(prev => {
+          const exists = uniqueTeams.find(t => t.id === prev);
+          return exists ? prev : localTeamId;
+        });
+
       } catch (e) {
         console.error("Failed to load teams", e);
-      }
-
-      // Tasks
-      try {
-        const remoteTasks = await firebaseService.getTasks();
-        setTasks(remoteTasks);
-      } catch (e) {
-        console.error("Failed to load tasks", e);
       }
     };
 
     fetchInitialData();
   }, [user]);
+
+  // Fetch Tasks when Active Team Changes
+  useEffect(() => {
+    if (!activeTeamId) return;
+
+    const fetchTeamTasks = async () => {
+      try {
+        setIsLoading(true); // Optional: show loading state between switches? Might be annoying. Maybe just keep old tasks until new ones load?
+        // Actually, better to clear or show loading to avoid showing wrong team tasks momentarily if filteredTasks logic fails/lags (though filter logic is sync).
+        // Since filteredTasks filters by ID, showing old tasks shouldn't happen if ID changed.
+
+        const teamTasks = await firebaseService.getTasks(activeTeamId);
+        setTasks(teamTasks);
+      } catch (e) {
+        console.error("Failed to load team tasks", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTeamTasks();
+  }, [activeTeamId]);
 
   // 4. Fetch Missing User Profiles
   useEffect(() => {

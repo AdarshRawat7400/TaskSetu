@@ -88,27 +88,29 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({ team, currentUser, allUsers
                         </div>
                     </section>
 
-                    {/* 2. Joining Code */}
-                    <section className="space-y-4">
-                        <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">Access Code</h3>
-                        <div className="bg-slate-100 dark:bg-slate-950 p-6 rounded-2xl flex items-center justify-between border border-dashed border-slate-300 dark:border-slate-700">
-                            <div>
-                                <p className="text-xs text-slate-500 font-medium mb-1">Share this code to invite members:</p>
-                                <p className="text-3xl font-black text-slate-800 dark:text-white tracking-[0.2em]">{team.joinCode || '----'}</p>
-                                <p className={`text-[10px] font-bold uppercase tracking-widest mt-2 ${(team.joinCodeUsage || 0) >= 3 ? 'text-red-500' : 'text-slate-400'}`}>
-                                    Usage: {team.joinCodeUsage || 0}/3 uses
-                                </p>
+                    {/* 2. Joining Code - Hidden for Personal Workspace */}
+                    {!team.id.startsWith('personal_') && !team.id.startsWith('temp_personal_') && (
+                        <section className="space-y-4">
+                            <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">Access Code</h3>
+                            <div className="bg-slate-100 dark:bg-slate-950 p-6 rounded-2xl flex items-center justify-between border border-dashed border-slate-300 dark:border-slate-700">
+                                <div>
+                                    <p className="text-xs text-slate-500 font-medium mb-1">Share this code to invite members:</p>
+                                    <p className="text-3xl font-black text-slate-800 dark:text-white tracking-[0.2em]">{team.joinCode || '----'}</p>
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest mt-2 ${(team.joinCodeUsage || 0) >= 3 ? 'text-red-500' : 'text-slate-400'}`}>
+                                        Usage: {team.joinCodeUsage || 0}/3 uses
+                                    </p>
+                                </div>
+                                {isAdmin && (
+                                    <button
+                                        onClick={regenerateCode}
+                                        className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold shadow-sm hover:border-orange-500 transition-all active:scale-95"
+                                    >
+                                        Regenerate
+                                    </button>
+                                )}
                             </div>
-                            {isAdmin && (
-                                <button
-                                    onClick={regenerateCode}
-                                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold shadow-sm hover:border-orange-500 transition-all active:scale-95"
-                                >
-                                    Regenerate
-                                </button>
-                            )}
-                        </div>
-                    </section>
+                        </section>
+                    )}
 
                     {/* 3. Members */}
                     <section className="space-y-4">

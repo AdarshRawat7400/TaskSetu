@@ -15,8 +15,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { Task, TaskStatus, User, ReminderType, Attachment } from '../types.ts';
 import { firebaseService } from '../services/firebaseService.ts';
 import { gasUploadService } from '../services/gasUploadService.ts';
+import { geminiService } from '../services/geminiService.ts';
 import TicketChatModal from './TicketChatModal';
 import TaskDetailView from './TaskDetailView.tsx';
+import VoiceChatOverlay from './VoiceChatOverlay';
 
 interface DashboardProps {
   tasks: Task[];
@@ -278,6 +280,10 @@ const DroppableColumn = ({ title, status, color, accent, tasks, users, onCardCli
 const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpdateTask, onAddTask, teamId, onTaskModified, isArchivedView, onDeleteTask }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -382,6 +388,51 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpda
     onUpdateTask(taskId, TaskStatus.ARCHIVED);
   };
 
+  const handleScanFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    setScanError(null);
+
+    // Outer try/catch is not needed for the async callback error, but good for readAsDataURL sync errors if any.
+    // However, we handle the main logic inside the callback.
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
+        const base64String = (reader.result as string).split(',')[1];
+        const extracted = await geminiService.analyzeDocument(base64String, file.type);
+
+        if (extracted) {
+          setNewTask(prev => ({
+            ...prev,
+            title: extracted.title || prev.title,
+            description: extracted.description || prev.description,
+            priority: extracted.priority || prev.priority,
+            dueDate: extracted.dueDate || prev.dueDate
+          }));
+        }
+      } catch (err: any) {
+        console.error("Scan failed", err);
+        const msg = err.message || "Failed to scan document.";
+        setScanError(msg === "Not available at the moment" ? msg : "Failed to scan document.");
+      } finally {
+        setIsScanning(false);
+        if (scanInputRef.current) scanInputRef.current.value = '';
+      }
+    };
+    try {
+      reader.readAsDataURL(file);
+    } catch (e) {
+      console.error("File reading failed sync", e);
+      setIsScanning(false);
+      setScanError("Failed to read file.");
+    }
+  };
+
+
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -407,10 +458,15 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpda
             <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Namaste, {currentUser.name.split(' ')[0]}</h1>
             <p className="text-slate-500 dark:text-slate-400 font-medium mt-2">Manage your team and collaborate efficiently.</p>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="bg-orange-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/30 flex items-center justify-center gap-3 active:scale-95">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
-            Add New Task
-          </button>
+          <div className="flex gap-4 items-center">
+            <button onClick={() => setIsVoiceChatOpen(true)} className="bg-blue-600 text-white w-14 h-14 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center justify-center active:scale-95" title="Start Voice Chat">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 18v3" /></svg>
+            </button>
+            <button onClick={() => setIsModalOpen(true)} className="bg-orange-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/30 flex items-center justify-center gap-3 active:scale-95">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+              Add New Task
+            </button>
+          </div>
         </div>
 
         <div ref={scrollContainerRef} className="flex gap-6 overflow-x-auto pb-6 flex-1 min-h-0 snap-x custom-scrollbar">
@@ -438,7 +494,28 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpda
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 dark:bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row">
             <div className="flex-1 p-8 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-6">Create New Ticket</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Create New Ticket</h2>
+                <div className="relative">
+                  <button
+                    onClick={() => scanInputRef.current?.click()}
+                    disabled={isScanning}
+                    className="text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 font-medium text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+                    title="Upload image/PDF to autofill details"
+                  >
+                    <svg className={`w-5 h-5 ${isScanning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    {isScanning ? 'Analyzing...' : 'AI Autofill'}
+                  </button>
+                  <input
+                    type="file"
+                    ref={scanInputRef}
+                    className="hidden"
+                    accept="image/*,application/pdf"
+                    onChange={handleScanFile}
+                  />
+                </div>
+              </div>
+              {scanError && <p className="text-red-500 text-xs text-right mt-1 font-medium">{scanError}</p>}
               <form onSubmit={handleCreateTask} className="space-y-6">
                 <div>
                   <label className="block text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">Heading</label>
@@ -559,6 +636,11 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, users, currentUser, onUpda
         task={chatTask}
         user={currentUser}
         onUpdateTask={onTaskModified}
+      />
+      <VoiceChatOverlay
+        isOpen={isVoiceChatOpen}
+        onClose={() => setIsVoiceChatOpen(false)}
+        currentUser={currentUser}
       />
     </DndContext>
   );
